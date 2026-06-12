@@ -13,6 +13,8 @@ using AABB = Eigen::AlignedBox3d;
 namespace geom
 {
     inline constexpr double Epsilon = 1e-9;
+    inline constexpr double pi = 3.14159265358979323846;
+    inline constexpr double deg = pi / 180.0;
 }
 
 struct Ray
@@ -74,12 +76,12 @@ struct AABBHit
     double tmax = 0.0;
 };
 
-/////////////////////////////////////////////////////
-//// BASE GEOMETRY CLASS
-//// explicitly define virtual destructor whenever a base class uses virtual functions
-//// if not, derived objects will not be deleted when the base class destructor is called
-//// virtual destructor ensures deletion looks up derived destructors in vtable
-/////////////////////////////////////////////////////
+/**
+ * BASE GEOMETRY CLASS
+ * explicitly define virtual destructor whenever a base class uses virtual functions
+ * if not, derived objects will not be deleted when the base class destructor is called
+ * virtual destructor ensures deletion looks up derived destructors in vtable
+ */
 class Geometry
 {
 public:
@@ -87,9 +89,9 @@ public:
     virtual Hit intersect(const Ray &ray) const = 0; // "= 0" -> pure virtual function, derived classes MUST override
 };
 
-////////////////////////////////////////////////////////////
-//// DERIVED GEOMETRY CLASSES: Sphere, Plane, Triangle Mesh
-///////////////////////////////////////////////////////////
+/**
+ * DERIVED GEOMETRY CLASSES: Sphere, Plane, Triangle Mesh
+ */
 class SphereGeometry : public Geometry
 {
 public:
@@ -151,7 +153,11 @@ public:
 
         Vec3 hitP = ray.ori + t * ray.dir;
 
-        hit = Hit{true, t, hitP, normal_, 1.0, objId_};
+        Vec3 normal = normal_;
+        if (normal.dot(ray.dir) > 0.0)
+            normal = -normal;
+
+        hit = Hit{true, t, hitP, normal, 1.0, objId_};
 
         return hit;
     }
@@ -182,6 +188,21 @@ public:
             return closest;
 
         hit(ray, rootNodeIndex_, closest);
+
+        return closest;
+    }
+
+    Hit bruteForceIntersect(const Ray &ray) const
+    {
+        Hit closest;
+
+        for (const Primitive &p : primitives_)
+        {
+            Hit h = intersectTriangle(ray, p);
+
+            if (h.hit && (!closest.hit || h.t < closest.t))
+                closest = h;
+        }
 
         return closest;
     }
@@ -374,7 +395,7 @@ private:
 
         for (int axis = 0; axis < 3; ++axis)
         {
-            if (ray.dir[axis] < geom::Epsilon)
+            if (std::abs(ray.dir[axis]) < geom::Epsilon)
             {
                 if (ray.ori[axis] < bbox.min()[axis] ||
                     ray.ori[axis] > bbox.max()[axis])

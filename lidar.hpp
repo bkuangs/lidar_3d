@@ -1,17 +1,18 @@
 #pragma once
 #include "geometry.hpp"
 
-struct Lidar {
-    Eigen::Isometry3d pose;   // 3d affine transform
+struct Lidar
+{
+    Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
 
-    double minRange;          // min/max distance thresholds
-    double maxRange;
+    double minRange = 0.1;
+    double maxRange = 50.0;
 
-    double minAzimuth;         // radians, [0, 2pi]
-    double maxAzimuth;         
-    int azimuthSamples;        // 720
+    double minAzimuth = 0.0;
+    double maxAzimuth = 2.0 * geom::pi;
+    int azimuthSamples = 360;
 
-    double minElevation;       // radians, [-15 deg, 15 deg]
-    double maxElevation;       
-    int elevationSamples;      // 16
+    double minElevation = -30.0 * geom::deg;
+    double maxElevation = 30.0 * geom::deg;
+    int elevationSamples = 32;
 };
